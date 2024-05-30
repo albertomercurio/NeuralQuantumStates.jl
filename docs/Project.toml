@@ -1,0 +1,3 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+NeuralQuantumStates = "029a3edf-269c-4747-b97b-5d91eab07d6f"
