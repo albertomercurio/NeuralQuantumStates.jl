@@ -1,5 +1,6 @@
 module NeuralQuantumStates
 
-# Write your package code here.
+using LinearAlgebra
+using SparseArrays
 
 end
