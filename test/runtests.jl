@@ -1,5 +1,6 @@
 using NeuralQuantumStates
 using Test
+import Pkg
 
 const GROUP = get(ENV, "GROUP", "All")
 
