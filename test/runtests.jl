@@ -1,6 +1,7 @@
 using NeuralQuantumStates
 using Test
 
+const GROUP = get(ENV, "GROUP", "All")
 
 if ((GROUP == "All") || (GROUP == "Code-Quality")) && (VERSION >= v"1.9")
     Pkg.add(["Aqua", "JET"])
