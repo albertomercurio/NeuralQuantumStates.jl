@@ -1,1 +1,11 @@
-# See https://domluna.github.io/JuliaFormatter.jl/stable/ for a list of options
+margin=120
+always_for_in=true
+remove_extra_newlines=true
+long_to_short_function_def=true
+always_use_return=true
+format_docstrings=true
+indent_submodule=true
+format_markdown=false
+ignore = [
+    "docs/make.jl",
+]
