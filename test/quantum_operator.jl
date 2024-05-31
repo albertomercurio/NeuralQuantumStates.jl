@@ -19,11 +19,11 @@
     @test res.constant[] == -2.0
 
     res = 3.0 - op1
-    @test res.dict[(1, 2)] == - op1.dict[(1, 2)]
+    @test res.dict[(1, 2)] == -op1.dict[(1, 2)]
     @test res.constant[] == 3.0
 
     res = -op1
-    @test res.dict[(1, 2)] == - op1.dict[(1, 2)]
+    @test res.dict[(1, 2)] == -op1.dict[(1, 2)]
 
     res = op1 - op1
     @test length(res.dict) == 1
@@ -33,8 +33,8 @@
     res = op1 + op2
 
     @test length(res.dict) == 2
-    @test res.dict[(1,2)] == kron(mat_x, mat_x)
-    @test res.dict[(2,3)] == kron(mat_z, mat_z)
+    @test res.dict[(1, 2)] == kron(mat_x, mat_x)
+    @test res.dict[(2, 3)] == kron(mat_z, mat_z)
 
     res = 2.0 * (op1 + 1.2)
     @test res.dict[(1, 2)] == 2.0 * op1.dict[(1, 2)]
@@ -43,6 +43,9 @@
     res = (op1 + 1.2) * 2.0
     @test res.dict[(1, 2)] == 2.0 * op1.dict[(1, 2)]
     @test res.constant[] == 2.0 * 1.2
+
+    res = 2.0 * op1 / 2
+    @test res.dict[(1, 2)] == op1.dict[(1, 2)]
 
     hi1 = Hilbert((2, 2, 2))
     hi2 = Hilbert((2, 2, 4))

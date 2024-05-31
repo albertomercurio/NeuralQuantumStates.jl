@@ -6,9 +6,7 @@ const GROUP = get(ENV, "GROUP", "All")
 
 const testdir = dirname(@__FILE__)
 
-const core_tests = [
-    "quantum_operator.jl",
-]
+const core_tests = ["quantum_operator.jl"]
 
 if ((GROUP == "All") || (GROUP == "Code-Quality")) && (VERSION >= v"1.9")
     Pkg.add(["Aqua", "JET"])
@@ -21,7 +19,6 @@ if ((GROUP == "All") || (GROUP == "Code-Quality")) && (VERSION >= v"1.9")
     @testset "Code linting (JET.jl)" begin
         JET.test_package(NeuralQuantumStates; target_defined_modules = true)
     end
-        
 end
 
 if (GROUP == "All") || (GROUP == "Core")
