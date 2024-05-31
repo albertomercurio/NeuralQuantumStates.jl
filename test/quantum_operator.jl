@@ -1,6 +1,7 @@
 @testset "Quantum Operator" begin
     hi = Hilbert((2, 2, 2, 2, 2))
     mat_x = [0 1; 1 0]
+    mat_y = [0 1im; -1im 0]
     mat_z = [-1 0; 0 1]
 
     # op1 = QuantumOperator(hi, 1, mat_x) * QuantumOperator(hi, 2, mat_x)
@@ -63,5 +64,16 @@
         res = (op1 + op2 + 1.2) * op1
         @test res.dict[(1, 2)] == op1.dict[(1, 2)]^2 + 1.2 * op1.dict[(1, 2)]
         @test res.dict[(1, 2, 3)] == kron(mat_x, mat_z * mat_x, mat_z)
+
+        if type <: Complex
+            op3 = sigmay(hi, 1, type) * sigmax(hi, 2, type)
+            res = op3 * op3
+            @test length(res.dict) == 1
+            @test res.dict[(1, 2)] == kron(mat_y * mat_y, mat_x * mat_x)
+
+            res = op1 * op2 * op3
+            @test length(res.dict) == 1
+            @test res.dict[(1, 2, 3)] == kron(mat_x * mat_y, mat_x * mat_z * mat_x, mat_z)
+        end
     end
 end
