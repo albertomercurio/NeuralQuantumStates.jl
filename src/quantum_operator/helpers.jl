@@ -58,13 +58,25 @@ function _multiply_keys_values(
 
     @inbounds for i in eachindex(acting_on)
         if !(acting_on[i] in key1)
-            mat1 = kron(mat1, I(hilbert.dims[acting_on[i]]))
-            push!(acting_on1, acting_on[i])
+            Id = I(hilbert.dims[acting_on[i]])
+            if acting_on[i] < first(acting_on1)
+                mat1 = kron(Id, mat1)
+                insert!(acting_on1, 1, acting_on[i])
+            else
+                mat1 = kron(mat1, Id)
+                push!(acting_on1, acting_on[i])
+            end
         end
 
         if !(acting_on[i] in key2)
-            mat2 = kron(mat2, I(hilbert.dims[acting_on[i]]))
-            push!(acting_on2, acting_on[i])
+            Id = I(hilbert.dims[acting_on[i]])
+            if acting_on[i] < first(acting_on2)
+                mat2 = kron(Id, mat2)
+                insert!(acting_on2, 1, acting_on[i])
+            else
+                mat2 = kron(mat2, Id)
+                push!(acting_on2, acting_on[i])
+            end
         end
     end
 

@@ -1,4 +1,5 @@
 export QuantumOperator
+export to_sparse
 
 struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:Tuple{Vararg{Integer}},<:AbstractMatrix},CT<:Ref{<:Number}}
     hilbert::HT
@@ -106,4 +107,26 @@ function Base.:(*)(q1::QuantumOperator, q2::QuantumOperator)
     end
 
     return QuantumOperator(q1.hilbert, dict_out, q1.constant[] * q2.constant[])
+end
+
+# THIS IS VERY SLOW!!!
+function to_sparse(
+    q::QuantumOperator{H,DT},
+) where {H<:Hilbert,MT<:AbstractMatrix,DT<:AbstractDict{<:Tuple{Vararg{Integer}},MT}}
+    T = eltype(MT)
+    n = prod(q.hilbert.dims)
+    mat = spzeros(T, n, n)
+
+    for (key, value) in q.dict
+        acting_on = collect(key)
+        acting_on_left = 1:first(acting_on)-1
+        acting_on_right = setdiff(1:length(q.hilbert), union(acting_on_left, acting_on))
+        Id_left = I(prod(q.hilbert.dims[acting_on_left]))
+        Id_right = I(prod(q.hilbert.dims[acting_on_right]))
+
+        acting_on_tmp, mat_tmp = _permute_kron(q.hilbert, vcat(acting_on_left, acting_on, acting_on_right), kron(Id_left, value, Id_right))
+        mat += mat_tmp
+    end
+
+    return mat
 end

@@ -2,7 +2,7 @@
     # The following is equivalent to hi = Hilbert((2, 2, 2))
     # But it is needed just for runtests
     hi = Hilbert((2,))
-    hi = hi * (hi^2)
+    hi = hi * (hi^4)
 
     mat_x = [0 1; 1 0]
     mat_y = [0 1im; -1im 0]
@@ -66,16 +66,23 @@
         @test res.dict[(1, 2, 3)] == kron(mat_x, mat_x * mat_z, mat_z)
 
         res = (op1 + op2 + 1.2) * op1
+        @test length(res.dict) == 2
         @test res.dict[(1, 2)] == op1.dict[(1, 2)]^2 + 1.2 * op1.dict[(1, 2)]
         @test res.dict[(1, 2, 3)] == kron(mat_x, mat_z * mat_x, mat_z)
 
+        op3 = sigmaz(hi, 4, type) * sigmax(hi, 5, type)
+        res = op1 * op2 * op3 + op3
+        @test length(res.dict) == 2
+        @test res.dict[(1, 2, 3, 4, 5)] == kron(mat_x, mat_x * mat_z, mat_z, mat_z, mat_x)
+        @test res.dict[(4, 5)] == kron(mat_z, mat_x)
+
         if type <: Complex
-            op3 = sigmay(hi, 1, type) * sigmax(hi, 2, type)
-            res = op3 * op3
+            op = sigmay(hi, 1, type) * sigmax(hi, 2, type)
+            res = op * op
             @test length(res.dict) == 1
             @test res.dict[(1, 2)] == kron(mat_y * mat_y, mat_x * mat_x)
 
-            res = op1 * op2 * op3
+            res = op1 * op2 * op
             @test length(res.dict) == 1
             @test res.dict[(1, 2, 3)] == kron(mat_x * mat_y, mat_x * mat_z * mat_x, mat_z)
         end
