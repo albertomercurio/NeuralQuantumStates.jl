@@ -45,9 +45,9 @@ function _multiply_keys_values(
     key1 == key2 && return Dict(key1 => value1 * value2)
 
     if length(intersect(key1, key2)) == 0
-        acting_on, mat_product = _permute_kron(hilbert, (key1..., key2...), kron(value1, value2))
+        acting_on, mat_product = _permute_kron(hilbert, vcat(collect(key1), collect(key2)), kron(value1, value2))
 
-        return Dict(acting_on => mat_product)
+        return Dict(Tuple(acting_on) => mat_product)
     end
 
     acting_on = sort!(union(key1, key2))
