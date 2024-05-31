@@ -1,4 +1,3 @@
-export permute_kron
 
 function _check_hilbert(q1::QuantumOperator{HT1}, q2::QuantumOperator{HT2}) where {HT1<:Hilbert,HT2<:Hilbert}
     if q1.hilbert != q2.hilbert
@@ -6,9 +5,20 @@ function _check_hilbert(q1::QuantumOperator{HT1}, q2::QuantumOperator{HT2}) wher
     end
 end
 
-_check_hilbert(q1::QuantumOperator{HT}, q2::QuantumOperator{HT}) where {HT<:Hilbert} = nothing
+_promote_quantum_operator(q::QuantumOperator, α::T) where {T<:Number} = _promote_quantum_operator(q, T)
 
-function permute_kron(hilbert, acting_on, mat)
+function _promote_quantum_operator(
+    q::QuantumOperator{HT,DT,CT},
+    T1::Type{<:Number},
+) where {HT<:Hilbert,T2<:Number,T3<:Number,KT,DT<:Dict{KT,<:AbstractMatrix{T2}},CT<:Ref{T3}}
+    T = promote_type(T1, T2, T3)
+    dict = Dict(key => T.(value) for (key, value) in q.dict)
+    constant = T(q.constant[])
+
+    return QuantumOperator(q.hilbert, dict, constant)
+end
+
+function _permute_kron(hilbert, acting_on, mat)
     issorted(acting_on) && return acting_on, mat
 
     n = size(mat, 1)
@@ -35,7 +45,7 @@ function _multiply_keys_values(
     key1 == key2 && return Dict(key1 => value1 * value2)
 
     if length(intersect(key1, key2)) == 0
-        acting_on, mat_product = permute_kron(hilbert, (key1..., key2...), kron(value1, value2))
+        acting_on, mat_product = _permute_kron(hilbert, (key1..., key2...), kron(value1, value2))
 
         return Dict(acting_on => mat_product)
     end
@@ -58,8 +68,8 @@ function _multiply_keys_values(
         end
     end
 
-    acting_on1, mat1 = permute_kron(hilbert, acting_on1, mat1)
-    acting_on2, mat2 = permute_kron(hilbert, acting_on2, mat2)
+    acting_on1, mat1 = _permute_kron(hilbert, acting_on1, mat1)
+    acting_on2, mat2 = _permute_kron(hilbert, acting_on2, mat2)
 
     acting_on1 == acting_on2 || throw(ArgumentError("The acting_on should be the same"))
 

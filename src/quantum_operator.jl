@@ -26,10 +26,6 @@ function QuantumOperator(hi::Hilbert, ao::Int, mat::AbstractMatrix{T}, constant 
     return QuantumOperator(hi, Dict((ao,) => mat), constant)
 end
 
-function QuantumOperator(hi::Hilbert; type::Type{T} = ComplexF64) where {T<:Number}
-    return QuantumOperator(hi, Dict{Tuple{Int},SparseMatrixCSC{T}}(), zero(T))
-end
-
 function Base.:(+)(q1::QuantumOperator, α::Number)
     # TODO: do we need deepcopy here?
     return QuantumOperator(q1.hilbert, deepcopy(q1.dict), q1.constant[] + α)
@@ -63,18 +59,22 @@ function LinearAlgebra.lmul!(α::Number, q::QuantumOperator)
         rmul!(value, α)
     end
 
+    q.constant[] *= α
+
     return q
 end
 
 LinearAlgebra.rmul!(q::QuantumOperator, α::Number) = lmul!(α, q)
 
 function Base.:(*)(α::Number, q::QuantumOperator)
-    _q = deepcopy(q)
+    # _q = deepcopy(q)
+    _q = _promote_quantum_operator(q, α)
     return lmul!(α, _q)
 end
 
 function Base.:(*)(q::QuantumOperator, α::Number)
-    _q = deepcopy(q)
+    # _q = deepcopy(q)
+    _q = _promote_quantum_operator(q, α)
     return rmul!(_q, α)
 end
 
