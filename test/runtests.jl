@@ -1,5 +1,8 @@
 using NeuralQuantumStates
 using Test
+using LinearAlgebra
+using SparseArrays
+
 import Pkg
 
 const GROUP = get(ENV, "GROUP", "All")
