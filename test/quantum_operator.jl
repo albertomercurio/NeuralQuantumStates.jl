@@ -1,5 +1,9 @@
 @testset "Quantum Operator" begin
-    hi = Hilbert((2, 2, 2, 2, 2))
+    # The following is equivalent to hi = Hilbert((2, 2, 2))
+    # But it is needed just for runtests
+    hi = Hilbert((2,))
+    hi = hi * (hi^2)
+
     mat_x = [0 1; 1 0]
     mat_y = [0 1im; -1im 0]
     mat_z = [-1 0; 0 1]
