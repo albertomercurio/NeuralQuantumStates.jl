@@ -1,7 +1,7 @@
 
 function _check_hilbert(q1::QuantumOperator{HT1}, q2::QuantumOperator{HT2}) where {HT1<:Hilbert,HT2<:Hilbert}
     if q1.hilbert != q2.hilbert
-        throw(ArgumentError("Hilbert spaces are different"))
+        throw(ErrorException("Hilbert spaces are different"))
     end
 end
 

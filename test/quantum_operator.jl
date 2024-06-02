@@ -55,10 +55,10 @@ test_type_inference(hi) = (sigmaz(hi, 1) + sigmax(hi, 1) + sigmay(hi, 2) + 1.2) 
         res = 2.0 * op1 / 2
         @test res.dict[[1, 2]] == op1.dict[[1, 2]]
 
-        hi1 = Hilbert((2, 2, 2))
-        hi2 = Hilbert((2, 2, 4))
+        hi1 = Hilbert([2, 2, 2])
+        hi2 = Hilbert([2, 2, 4])
 
-        @test_throws ArgumentError QuantumOperator(hi1, 1, mat_x) + QuantumOperator(hi2, 1, mat_x)
+        @test_throws ErrorException QuantumOperator(hi1, 1, mat_x) + QuantumOperator(hi2, 1, mat_x)
 
         res = op1 * op2
         @test length(res.dict) == 1
