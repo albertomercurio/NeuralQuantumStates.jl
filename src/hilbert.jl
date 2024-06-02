@@ -4,6 +4,8 @@ struct Hilbert{NT<:Tuple{Vararg{Integer}}}
     dims::NT
 end
 
+Hilbert(dim::Int) = Hilbert((dim,))
+
 Base.length(hilbert::Hilbert) = length(hilbert.dims)
 
 Base.:(*)(hilbert1::Hilbert, hilbert2::Hilbert) = Hilbert((hilbert1.dims..., hilbert2.dims...))

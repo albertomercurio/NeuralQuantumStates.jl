@@ -3,7 +3,7 @@ test_type_inference(hi) = (sigmaz(hi, 1) + sigmax(hi, 1) + sigmay(hi, 2) + 1.2) 
 @testset "Quantum Operator" begin
     # The following is equivalent to hi = Hilbert((2, 2, 2))
     # But it is needed just for runtests
-    hi = Hilbert((2,))
+    hi = Hilbert(2)
     hi = hi * (hi^4)
 
     mat_x = [0 1; 1 0]
