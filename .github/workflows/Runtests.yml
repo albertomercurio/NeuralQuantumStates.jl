@@ -30,7 +30,7 @@ jobs:
       matrix:
         # for core tests (latest and oldest supported versions)
         version:
-          - '1.7'
+          - '1.8'
           - '1.10'
         os:
           - ubuntu-latest
@@ -43,10 +43,6 @@ jobs:
 
         include:
           # for core tests (intermediate versions)
-          - version: '1.8'
-            os: 'ubuntu-latest'
-            arch: 'x64'
-            group: 'Core'
           - version: '1.9'
             os: 'ubuntu-latest'
             arch: 'x64'
