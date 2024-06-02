@@ -1,16 +1,16 @@
 export QuantumOperator
-export to_sparse
+# export to_sparse
 
-struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:Tuple{Vararg{Integer}},<:AbstractMatrix},CT<:Ref{<:Number}}
+struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Number}
     hilbert::HT
     dict::DT
-    constant::CT
+    constant::Ref{CT}
 
     function QuantumOperator(
         hilbert::HT,
         dict::DT,
         constant::CT = 0,
-    ) where {HT<:Hilbert,DT<:AbstractDict{<:Tuple{Vararg{Integer}},<:AbstractMatrix},CT<:Number}
+    ) where {HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Number}
         for (key, value) in dict
             # TODO: merge also the duplicates on the product
             allunique(key) ||
@@ -19,17 +19,17 @@ struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:Tuple{Vararg{Integer}},<:A
             issorted(key) || throw(ArgumentError("The acting_on should be sorted"))
         end
 
-        return new{HT,DT,Ref{CT}}(hilbert, dict, Ref(constant))
+        return new{HT,DT,CT}(hilbert, dict, Ref(constant))
     end
 end
 
 function QuantumOperator(hi::Hilbert, ao::Int, mat::AbstractMatrix{T}, constant = zero(T)) where {T<:Number}
-    return QuantumOperator(hi, Dict((ao,) => mat), constant)
+    return QuantumOperator(hi, Dict([ao] => mat), constant)
 end
 
-function Base.:(+)(q1::QuantumOperator, α::Number)
+function Base.:(+)(q::QuantumOperator, α::Number)
     # TODO: do we need deepcopy here?
-    return QuantumOperator(q1.hilbert, deepcopy(q1.dict), q1.constant[] + α)
+    return QuantumOperator(q.hilbert, _promote_quantum_operator(q, α).dict, q.constant[] + α)
 end
 
 Base.:(+)(α::Number, q1::QuantumOperator) = q1 + α
@@ -52,9 +52,8 @@ function Base.:(-)(q1::QuantumOperator, q2::QuantumOperator)
     return q1 + (-1) * q2
 end
 
-function LinearAlgebra.lmul!(α::Number, q::QuantumOperator)
-    T = eltype(q.constant[])
-    iszero(α) && (empty!(q.dict); q.constant[] = zero(T); return q)
+function LinearAlgebra.lmul!(α::Number, q::QuantumOperator{HT,DT,CT}) where {HT,DT,CT<:Number}
+    iszero(α) && (empty!(q.dict); q.constant[] = zero(CT); return q)
 
     for (key, value) in q.dict
         rmul!(value, α)
@@ -68,65 +67,75 @@ end
 LinearAlgebra.rmul!(q::QuantumOperator, α::Number) = lmul!(α, q)
 
 function Base.:(*)(α::Number, q::QuantumOperator)
-    # _q = deepcopy(q)
     _q = _promote_quantum_operator(q, α)
     return lmul!(α, _q)
 end
 
 function Base.:(*)(q::QuantumOperator, α::Number)
-    # _q = deepcopy(q)
     _q = _promote_quantum_operator(q, α)
     return rmul!(_q, α)
 end
 
 Base.:(/)(q::QuantumOperator, α::Number) = q * (1 / α)
 
-function Base.:(*)(q1::QuantumOperator, q2::QuantumOperator)
+function Base.:(*)(
+    q1::QuantumOperator{HT1,DT1,CT1},
+    q2::QuantumOperator{HT2,DT2,CT2},
+) where {
+    HT1,
+    T1,
+    DT1<:AbstractDict{<:AbstractVector,<:AbstractMatrix{T1}},
+    CT1,
+    HT2,
+    T2,
+    DT2<:AbstractDict{<:AbstractVector,<:AbstractMatrix{T2}},
+    CT2,
+}
     _check_hilbert(q1, q2)
+
+    T = promote_type(T1, T2, CT1, CT2)
 
     # (α + ∑ᵢAᵢ)(β + ∑ᵢBᵢ) =
     # = αβ + α ∑ᵢBᵢ + β ∑ᵢAᵢ + ∑ᵢⱼAᵢBⱼ
     # = β(α + ∑ᵢAᵢ) + α ∑ᵢBᵢ + ∑ᵢⱼAᵢBⱼ
 
-    q_out = deepcopy(q1)
+    q_out = _promote_quantum_operator(q1, T)
 
     # αβ + β ∑ᵢAᵢ
     rmul!(q_out, q2.constant[])
 
-    dict_out = q_out.dict
-
     # α ∑ᵢBᵢ
-    dict_out = mergewith(+, dict_out, (q1.constant[] * q2).dict)
+    mergewith!(+, q_out.dict, (q1.constant[] * q2).dict)
 
     # ∑ᵢⱼAᵢBⱼ
     for (key1, value1) in q1.dict
         for (key2, value2) in q2.dict
             dict_tmp = _multiply_keys_values(q1.hilbert, key1, value1, key2, value2)
-            dict_out = mergewith(+, dict_out, dict_tmp)
+            mergewith!(+, q_out.dict, dict_tmp)
         end
     end
 
-    return QuantumOperator(q1.hilbert, dict_out, q1.constant[] * q2.constant[])
+    return QuantumOperator(q1.hilbert, q_out.dict, q1.constant[] * q2.constant[])
 end
 
 # THIS IS VERY SLOW!!!
-function to_sparse(
-    q::QuantumOperator{H,DT},
-) where {H<:Hilbert,MT<:AbstractMatrix,DT<:AbstractDict{<:Tuple{Vararg{Integer}},MT}}
-    T = eltype(MT)
-    n = prod(q.hilbert.dims)
-    mat = spzeros(T, n, n)
+# function to_sparse(
+#     q::QuantumOperator{H,DT},
+# ) where {H<:Hilbert,MT<:AbstractMatrix,DT<:AbstractDict{<:Tuple{Vararg{Integer}},MT}}
+#     T = eltype(MT)
+#     n = prod(q.hilbert.dims)
+#     mat = spzeros(T, n, n)
 
-    for (key, value) in q.dict
-        acting_on = collect(key)
-        acting_on_left = 1:first(acting_on)-1
-        acting_on_right = setdiff(1:length(q.hilbert), union(acting_on_left, acting_on))
-        Id_left = I(prod(q.hilbert.dims[acting_on_left]))
-        Id_right = I(prod(q.hilbert.dims[acting_on_right]))
+#     for (key, value) in q.dict
+#         acting_on = collect(key)
+#         acting_on_left = 1:first(acting_on)-1
+#         acting_on_right = setdiff(1:length(q.hilbert), union(acting_on_left, acting_on))
+#         Id_left = I(prod(q.hilbert.dims[acting_on_left]))
+#         Id_right = I(prod(q.hilbert.dims[acting_on_right]))
 
-        acting_on_tmp, mat_tmp = _permute_kron(q.hilbert, vcat(acting_on_left, acting_on, acting_on_right), kron(Id_left, value, Id_right))
-        mat += mat_tmp
-    end
+#         acting_on_tmp, mat_tmp = _permute_kron(q.hilbert, vcat(acting_on_left, acting_on, acting_on_right), kron(Id_left, value, Id_right))
+#         mat += mat_tmp
+#     end
 
-    return mat
-end
+#     return mat
+# end

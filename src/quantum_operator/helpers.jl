@@ -7,12 +7,35 @@ end
 
 _promote_quantum_operator(q::QuantumOperator, α::T) where {T<:Number} = _promote_quantum_operator(q, T)
 
+function _change_matrix_type(::Type{M}, ::Type{T}) where {M<:AbstractMatrix,T}
+    par = M.parameters
+    npar = length(par)
+    (2 ≤ npar ≤ 3) || error("Type $M is not supported.")
+    if npar == 2
+        S = M.name.wrapper{T,par[2]}
+    else
+        S = M.name.wrapper{T,par[2],par[3]}
+    end
+    return S
+end
+
+function _change_matrix_type(::Type{M}, ::Type{T}) where {M<:AbstractSparseMatrix,T}
+    par = M.parameters
+    npar = length(par)
+    (npar == 2) || error("Type $M is not supported.")
+    S = M.name.wrapper{T,par[2]}
+    return S
+end
+
 function _promote_quantum_operator(
     q::QuantumOperator{HT,DT,CT},
     T1::Type{<:Number},
-) where {HT<:Hilbert,T2<:Number,T3<:Number,KT,DT<:Dict{KT,<:AbstractMatrix{T2}},CT<:Ref{T3}}
+) where {HT<:Hilbert,T2<:Number,KT,MT<:AbstractMatrix,DT<:Dict{KT,MT},CT<:T2}
+    T3 = eltype(MT)
     T = promote_type(T1, T2, T3)
-    dict = Dict(key => T.(value) for (key, value) in q.dict)
+    MT_new = _change_matrix_type(MT, T)
+
+    dict = Dict{KT,MT_new}(key => copy(convert(MT_new, value)) for (key, value) in q.dict)
     constant = T(q.constant[])
 
     return QuantumOperator(q.hilbert, dict, constant)
@@ -41,18 +64,18 @@ function _multiply_keys_values(
     value1::VT1,
     key2::KT2,
     value2::VT2,
-) where {KT1<:Tuple,KT2<:Tuple,VT1<:AbstractMatrix,VT2<:AbstractMatrix}
+) where {KT1<:AbstractVector,KT2<:AbstractVector,VT1<:AbstractMatrix,VT2<:AbstractMatrix}
     key1 == key2 && return Dict(key1 => value1 * value2)
 
     if length(intersect(key1, key2)) == 0
-        acting_on, mat_product = _permute_kron(hilbert, vcat(collect(key1), collect(key2)), kron(value1, value2))
+        acting_on, mat_product = _permute_kron(hilbert, vcat(key1, key2), kron(value1, value2))
 
-        return Dict(Tuple(acting_on) => mat_product)
+        return Dict(acting_on => mat_product)
     end
 
     acting_on = sort!(union(key1, key2))
-    acting_on1 = collect(key1)
-    acting_on2 = collect(key2)
+    acting_on1 = copy(key1)
+    acting_on2 = copy(key2)
     mat1 = copy(value1)
     mat2 = copy(value2)
 
@@ -85,5 +108,5 @@ function _multiply_keys_values(
 
     acting_on1 == acting_on2 || throw(ArgumentError("The acting_on should be the same"))
 
-    return Dict(Tuple(acting_on1) => mat1 * mat2)
+    return Dict(acting_on1 => mat1 * mat2)
 end
