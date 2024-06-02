@@ -1,6 +1,4 @@
-function test_type_inference(hi)
-    return (sigmaz(hi, 1) + sigmax(hi, 1) + sigmay(hi, 2) + 1.2) * (sigmax(hi, 1) + sigmaz(hi, 2) + 1im)
-end
+test_type_inference(hi) = (sigmaz(hi, 1) + sigmax(hi, 1) + sigmay(hi, 2) + 1.2) * (sigmax(hi, 1) + sigmaz(hi, 2) + 1im)
 
 @testset "Quantum Operator" begin
     # The following is equivalent to hi = Hilbert((2, 2, 2))
