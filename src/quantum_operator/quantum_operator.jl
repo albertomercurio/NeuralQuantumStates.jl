@@ -1,26 +1,26 @@
 export QuantumOperator
 # export to_sparse
 
-struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Number}
+struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Ref{<:Number}}
     hilbert::HT
     dict::DT
-    constant::Ref{CT}
+    constant::CT
+end
 
-    function QuantumOperator(
-        hilbert::HT,
-        dict::DT,
-        constant::CT = 0,
-    ) where {HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Number}
-        for (key, value) in dict
-            # TODO: merge also the duplicates on the product
-            allunique(key) ||
-                throw(ArgumentError("The are operators acting on the same subsystem that need to be multiplied first"))
-            # TODO: sort the acting_on and the products_sums_unique
-            issorted(key) || throw(ArgumentError("The acting_on should be sorted"))
-        end
-
-        return new{HT,DT,CT}(hilbert, dict, Ref(constant))
+function QuantumOperator(
+    hilbert::HT,
+    dict::DT,
+    constant::CT = 0,
+) where {HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Number}
+    for (key, value) in dict
+        # TODO: merge also the duplicates on the product
+        allunique(key) ||
+            throw(ArgumentError("The are operators acting on the same subsystem that need to be multiplied first"))
+        # TODO: sort the acting_on and the products_sums_unique
+        issorted(key) || throw(ArgumentError("The acting_on should be sorted"))
     end
+
+    return QuantumOperator(hilbert, dict, Ref(constant))
 end
 
 function QuantumOperator(hi::Hilbert, ao::Int, mat::AbstractMatrix{T}, constant = zero(T)) where {T<:Number}
@@ -52,7 +52,7 @@ function Base.:(-)(q1::QuantumOperator, q2::QuantumOperator)
     return q1 + (-1) * q2
 end
 
-function LinearAlgebra.lmul!(α::Number, q::QuantumOperator{HT,DT,CT}) where {HT,DT,CT<:Number}
+function LinearAlgebra.lmul!(α::Number, q::QuantumOperator{HT,DT,CRT}) where {HT,DT,CT<:Number,CRT<:Ref{CT}}
     iszero(α) && (empty!(q.dict); q.constant[] = zero(CT); return q)
 
     for (key, value) in q.dict
@@ -79,17 +79,19 @@ end
 Base.:(/)(q::QuantumOperator, α::Number) = q * (1 / α)
 
 function Base.:(*)(
-    q1::QuantumOperator{HT1,DT1,CT1},
-    q2::QuantumOperator{HT2,DT2,CT2},
+    q1::QuantumOperator{HT1,DT1,CRT1},
+    q2::QuantumOperator{HT2,DT2,CRT2},
 ) where {
     HT1,
     T1,
     DT1<:AbstractDict{<:AbstractVector,<:AbstractMatrix{T1}},
     CT1,
+    CRT1<:Ref{CT1},
     HT2,
     T2,
     DT2<:AbstractDict{<:AbstractVector,<:AbstractMatrix{T2}},
     CT2,
+    CRT2<:Ref{CT2},
 }
     _check_hilbert(q1, q2)
 

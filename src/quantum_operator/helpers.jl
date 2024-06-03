@@ -1,5 +1,5 @@
 
-function _check_hilbert(q1::QuantumOperator{HT1}, q2::QuantumOperator{HT2}) where {HT1<:Hilbert,HT2<:Hilbert}
+function _check_hilbert(q1::QuantumOperator, q2::QuantumOperator)
     if q1.hilbert != q2.hilbert
         throw(ErrorException("Hilbert spaces are different"))
     end
@@ -28,9 +28,9 @@ function _change_matrix_type(::Type{M}, ::Type{T}) where {M<:AbstractSparseMatri
 end
 
 function _promote_quantum_operator(
-    q::QuantumOperator{HT,DT,CT},
+    q::QuantumOperator{HT,DT,CRT},
     T1::Type{<:Number},
-) where {HT<:Hilbert,T2<:Number,KT,MT<:AbstractMatrix,DT<:Dict{KT,MT},CT<:T2}
+) where {HT<:Hilbert,T2<:Number,KT,MT<:AbstractMatrix,DT<:Dict{KT,MT},CT<:T2,CRT<:Ref{CT}}
     T3 = eltype(MT)
     T = promote_type(T1, T2, T3)
     MT_new = _change_matrix_type(MT, T)
