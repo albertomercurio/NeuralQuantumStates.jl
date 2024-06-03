@@ -1,5 +1,6 @@
 
-_check_hilbert(q1::QuantumOperator, q2::QuantumOperator) = if q1.hilbert != q2.hilbert
+_check_hilbert(q1::QuantumOperator, q2::QuantumOperator) =
+    if q1.hilbert != q2.hilbert
         throw(ErrorException("Hilbert spaces are different"))
     end
 
