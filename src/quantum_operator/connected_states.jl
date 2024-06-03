@@ -37,12 +37,25 @@ function kron_index_to_vector(q::T1, M::AbstractVector{T2}) where {T1<:Integer,T
     return kron_index_to_vector!(x, q, M)
 end
 
+# Inplace version of findall
+function findall!(A::AbstractArray)
+    n = count(!iszero, A)
+    I = @view(A[1:n])
+    cnt = 1
+    @inbounds for (i, a) in enumerate(A)
+        if !iszero(a)
+            I[cnt] = i
+            cnt += 1
+        end
+    end
+    return I
+end
+
 function get_connected_states(
     q::QuantumOperator{HT,DT,CT},
     ψ::AbstractVector,
 ) where {HT,T1,T2,DT<:AbstractDict{<:AbstractVector{T1},<:AbstractMatrix{T2}},CT}
     hi = q.hilbert
-    ψ_cache = similar(ψ)
 
     connected_states_idxs = T1[]
     mels = T2[]
@@ -54,18 +67,27 @@ function get_connected_states(
         push!(mels, c)
     end
 
+    # TODO: we need to preallocate these arrays somehow
+    # rows_cache = Array{T1}(undef, 4) # The  4 dimension is arbitrary at the moment
+    ψ_cache = similar(ψ)
+
     for (acting_on, mat) in q.dict
         # This would be more efficient when using SparseMatrixCOO
         rows, cols, vals = findnz(mat)
         idx = vector_to_kron_index(@view(ψ[acting_on]), @view(hi.dims[acting_on]))
 
-        idxs = findall(==(idx), rows)
+        rows_cache = similar(rows)
+
+        # idxs = findall(==(idx), rows)
+        # idxs = findall!(rows_cache[1:length(rows)] .= rows .== idx)
+        idxs = findall!(rows_cache .= rows .== idx)
 
         if length(idxs) > 0
             for i in idxs
                 copyto!(ψ_cache, ψ) # re-initialize the cache
-                ψ_acting_on = kron_index_to_vector(cols[i] - 1, @view(hi.dims[acting_on]))
-                copyto!(@view(ψ_cache[acting_on]), ψ_acting_on)
+
+                ψ_acting_on = kron_index_to_vector!(@view(ψ_cache[acting_on]), cols[i] - 1, @view(hi.dims[acting_on]))
+
                 j = vector_to_kron_index(ψ_cache, hi.dims)
 
                 idx_find = findfirst(==(j), connected_states_idxs)
