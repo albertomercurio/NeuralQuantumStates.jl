@@ -1,9 +1,7 @@
 
-function _check_hilbert(q1::QuantumOperator, q2::QuantumOperator)
-    if q1.hilbert != q2.hilbert
+_check_hilbert(q1::QuantumOperator, q2::QuantumOperator) = if q1.hilbert != q2.hilbert
         throw(ErrorException("Hilbert spaces are different"))
     end
-end
 
 _promote_quantum_operator(q::QuantumOperator, α::T) where {T<:Number} = _promote_quantum_operator(q, T)
 

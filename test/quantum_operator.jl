@@ -92,10 +92,13 @@ test_type_inference(hi) = (sigmaz(hi, 1) + sigmax(hi, 1) + sigmay(hi, 2) + 1.2) 
 
     @testset "Connected States" begin
         hi = Hilbert(2)^2
-    
-        hamiltonian = NeuralQuantumStates.sigmax(hi, 1) * NeuralQuantumStates.sigmaz(hi, 2) + NeuralQuantumStates.sigmaz(hi, 1) + 0.3
+
+        hamiltonian =
+            NeuralQuantumStates.sigmax(hi, 1) * NeuralQuantumStates.sigmaz(hi, 2) +
+            NeuralQuantumStates.sigmaz(hi, 1) +
+            0.3
         ψ = [1, 0]
-    
+
         states, mels = get_connected_states(hamiltonian, ψ)
         @test states == [1 0; 0 0]
         @test mels == [1.3, -1]
