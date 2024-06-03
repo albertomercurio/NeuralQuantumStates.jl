@@ -10,11 +10,15 @@ function _prod(i, M::AbstractVector{T}) where {T}
     return res
 end
 
-function vector_to_kron_index(x::AbstractVector, M::AbstractVector)
+function vector_to_kron_index(x::AbstractVector{T1}, M::AbstractVector{T2}) where {T1,T2}
+    T = promote_type(T1, T2)
+
     # For some reason this allocates memory when M is already a SubArray
+    # so we need to use the _prod function
     # q = reduce((acc, i) -> acc + x[i] * prod(@view(M[i+1:end])), eachindex(x), init=1)
 
-    q = reduce((acc, (i, xi)) -> acc + xi * _prod(i, M), enumerate(x), init = 1)
+    q = reduce((acc, (i, xi)) -> acc + xi * _prod(i, M), enumerate(x), init = one(T))
+
     return q
 end
 
@@ -68,19 +72,21 @@ function get_connected_states(
     end
 
     # TODO: we need to preallocate these arrays somehow
+    # ψ_cache = similar(ψ)
     # rows_cache = Array{T1}(undef, 4) # The  4 dimension is arbitrary at the moment
-    ψ_cache = similar(ψ)
+    ψ_cache = q.cache1
+    rows_cache = q.cache2
 
     for (acting_on, mat) in q.dict
         # This would be more efficient when using SparseMatrixCOO
         rows, cols, vals = findnz(mat)
         idx = vector_to_kron_index(@view(ψ[acting_on]), @view(hi.dims[acting_on]))
 
-        rows_cache = similar(rows)
+        # rows_cache = similar(rows)
 
         # idxs = findall(==(idx), rows)
-        # idxs = findall!(rows_cache[1:length(rows)] .= rows .== idx)
-        idxs = findall!(rows_cache .= rows .== idx)
+        idxs = findall!(rows_cache[1:length(rows)] .= rows .== idx)
+        # idxs = findall!(rows_cache .= rows .== idx)
 
         if length(idxs) > 0
             for i in idxs

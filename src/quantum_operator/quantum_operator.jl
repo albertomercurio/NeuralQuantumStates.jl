@@ -1,18 +1,19 @@
 export QuantumOperator
-# export to_sparse
 
-struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Ref{<:Number}}
+struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Ref{<:Number},C1T,C2T}
     hilbert::HT
     dict::DT
     constant::CT
+    cache1::C1T
+    cache2::C2T
 end
 
 function QuantumOperator(
     hilbert::HT,
     dict::DT,
     constant::CT = 0,
-) where {HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Number}
-    for (key, value) in dict
+) where {HT<:Hilbert,KT,DT<:AbstractDict{<:AbstractVector{KT},<:AbstractMatrix},CT<:Number}
+    for key in keys(dict)
         # TODO: merge also the duplicates on the product
         allunique(key) ||
             throw(ArgumentError("The are operators acting on the same subsystem that need to be multiplied first"))
@@ -20,7 +21,9 @@ function QuantumOperator(
         issorted(key) || throw(ArgumentError("The acting_on should be sorted"))
     end
 
-    return QuantumOperator(hilbert, dict, Ref(constant))
+    cache1 = _get_dense_similar(first(values(dict)), length(hilbert.dims))
+    cache2 = Array{KT}(undef, mapreduce(length, max, values(dict)))
+    return QuantumOperator(hilbert, dict, Ref(constant), cache1, cache2)
 end
 
 function QuantumOperator(hi::Hilbert, ao::Int, mat::AbstractMatrix{T}, constant = zero(T)) where {T<:Number}

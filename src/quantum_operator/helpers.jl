@@ -6,6 +6,9 @@ _check_hilbert(q1::QuantumOperator, q2::QuantumOperator) =
 
 _promote_quantum_operator(q::QuantumOperator, α::T) where {T<:Number} = _promote_quantum_operator(q, T)
 
+_get_dense_similar(A::AbstractArray, args...) = similar(A, args...)
+_get_dense_similar(A::AbstractSparseMatrix, args...) = similar(nonzeros(A), args...)
+
 function _change_matrix_type(::Type{M}, ::Type{T}) where {M<:AbstractMatrix,T}
     par = M.parameters
     npar = length(par)
