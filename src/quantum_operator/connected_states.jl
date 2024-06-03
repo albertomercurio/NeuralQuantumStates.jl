@@ -1,8 +1,20 @@
 export vector_to_kron_index, kron_index_to_vector, kron_index_to_vector!
 export get_connected_states
 
-function vector_to_kron_index(x::AbstractVector{T1}, M::AbstractVector{T2}) where {T1<:Integer, T2<:Integer}
-    q = reduce((acc, (i, xi)) -> acc + xi * prod(@view(M[i+1:end])), enumerate(x), init=1)
+# This is to avoid to call prod(@view(M[i+1:end])) when M is already a SubArray
+function _prod(i, M::AbstractVector{T}) where T
+    res = one(T)
+    @inbounds for j in i+1:length(M)
+        res *= M[j]
+    end
+    return res
+end
+
+function vector_to_kron_index(x::AbstractVector, M::AbstractVector)
+    # For some reason this allocates memory when M is already a SubArray
+    # q = reduce((acc, i) -> acc + x[i] * prod(@view(M[i+1:end])), eachindex(x), init=1)
+
+    q = reduce((acc, (i, xi)) -> acc + xi * _prod(i, M), enumerate(x), init=1)
     return q
 end
 
