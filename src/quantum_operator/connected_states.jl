@@ -97,24 +97,29 @@ function get_connected_states(
 
                     kron_index_to_vector!(@view(ψ_cache[acting_on]), rows[i] - 1, @view(hi.dims[acting_on]))
 
-                    # j = vector_to_kron_index(ψ_cache, hi.dims)
-                    idx_find = findfirst(==(ψ_cache), eachcol(@view(connected_states_cache[:, 2:n_connected])))
+                    # TODO: This commented code is slow. Check if idx_find might be === nothing
+                    # idx_find = findfirst(==(ψ_cache), eachcol(@view(connected_states_cache[:, 2:n_connected])))
 
-                    # idx_find = findfirst(==(j), connected_states_idxs)
-                    if idx_find !== nothing
-                        mels[idx_find] += vals[i]
-                    else
-                        # connected_states_idxs[n_connected + 1] = j
-                        mels[n_connected+1] = vals[i]
-                        connected_states_cache[:, n_connected+1] .= ψ_cache
-                        n_connected += 1
-                    end
+                    # if idx_find !== nothing
+                    #     println("Found")
+                    #     mels[idx_find] += vals[i]
+                    # else
+                    #     # connected_states_idxs[n_connected + 1] = j
+                    #     mels[n_connected+1] = vals[i]
+                    #     connected_states_cache[:, n_connected+1] .= ψ_cache
+                    #     n_connected += 1
+                    # end
+                    
+                    # We use this instead, without checking if the state is already in the cache
+                    mels[n_connected+1] = vals[i]
+                    connected_states_cache[:, n_connected+1] .= ψ_cache
+                    n_connected += 1
                 end
             end
         end
     end
 
-    connected_states = connected_states_cache[:, 2-has_diagonal_terms:n_connected]
+    connected_states = @view(connected_states_cache[:, 2-has_diagonal_terms:n_connected])
 
-    return connected_states, mels[2-has_diagonal_terms:n_connected]
+    return connected_states, @view(mels[2-has_diagonal_terms:n_connected])
 end
