@@ -1,18 +1,18 @@
 export QuantumOperator
+export is_initialized, get_max_nnz, get_max_conn_size, setup_cache!
 
-struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Ref{<:Number},C1T,C2T}
+struct QuantumOperator{HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Ref{<:Number},CAT}
     hilbert::HT
     dict::DT
     constant::CT
-    cache1::C1T
-    cache2::C2T
+    cache::CAT
 end
 
 function QuantumOperator(
     hilbert::HT,
     dict::DT,
     constant::CT = 0,
-) where {HT<:Hilbert,KT,DT<:AbstractDict{<:AbstractVector{KT},<:AbstractMatrix},CT<:Number}
+) where {HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Number}
     for key in keys(dict)
         # TODO: merge also the duplicates on the product
         allunique(key) ||
@@ -21,9 +21,42 @@ function QuantumOperator(
         issorted(key) || throw(ArgumentError("The acting_on should be sorted"))
     end
 
-    cache1 = _get_dense_similar(first(values(dict)), length(hilbert.dims))
-    cache2 = Array{KT}(undef, mapreduce(length, max, values(dict)))
-    return QuantumOperator(hilbert, dict, Ref(constant), cache1, cache2)
+    KT = eltype(first(keys(dict)))
+    MT = eltype(first(values(dict)))
+    T = promote_type(MT, CT)
+
+    ψ_cache = _get_dense_similar(first(values(dict)), length(hilbert.dims))
+    initial_matrix_cache = _get_dense_similar(first(values(dict)), 1, 1)
+    cache = (
+        is_initialized = Ref(false),
+        max_nnz = Ref(0),
+        max_conn_size = Ref(0),
+        ψ_cache = ψ_cache,
+        connected_states_idxs = KT[],
+        mels = T[],
+        cols_cache = KT[],
+        connected_states_cache = Dict(:connected_states => initial_matrix_cache), # TODO: is there a more efficient way to handle this?
+    )
+
+    # max_nnz = mapreduce(nnz, max, values(dict))
+    # max_conn_size = mapreduce(_max_nonzeros_per_row, +, values(dict)) + !iszero(constant) + 1
+
+    # connected_states_idxs = Array{KT}(undef, max_conn_size)
+    # mels = Array{T}(undef, max_conn_size)
+    # cols_cache = Array{KT}(undef, max_nnz)
+    # connected_states_cache = Array{KT}(undef, length(hilbert), max_conn_size)
+
+    # cache = (
+    #     max_nnz = max_nnz,
+    #     max_conn_size = max_conn_size,
+    #     ψ_cache = ψ_cache,
+    #     connected_states_idxs = connected_states_idxs,
+    #     mels = mels,
+    #     cols_cache = cols_cache,
+    #     connected_states_cache = connected_states_cache,
+    # )
+
+    return QuantumOperator(hilbert, dict, Ref(constant), cache)
 end
 
 function QuantumOperator(hi::Hilbert, ao::Int, mat::AbstractMatrix{T}, constant = zero(T)) where {T<:Number}
@@ -121,6 +154,33 @@ function Base.:(*)(
     end
 
     return QuantumOperator(q1.hilbert, q_out.dict, q1.constant[] * q2.constant[])
+end
+
+is_initialized(q::QuantumOperator) = q.cache.is_initialized[]
+
+get_max_nnz(q::QuantumOperator) = q.cache.max_nnz[]
+
+get_max_conn_size(q::QuantumOperator) = q.cache.max_conn_size[]
+
+function setup_cache!(q::QuantumOperator{HT,DT}) where {HT,KT,DT<:AbstractDict{<:AbstractVector{KT},<:AbstractMatrix}}
+    if !is_initialized(q)
+        max_nnz = mapreduce(nnz, max, values(q.dict))
+        max_conn_size = mapreduce(_max_nonzeros_per_row, +, values(q.dict)) + !iszero(q.constant[]) + 1
+
+        q.cache.is_initialized[] = true
+        q.cache.max_nnz[] = max_nnz
+        q.cache.max_conn_size[] = max_conn_size
+        resize!(q.cache.connected_states_idxs, max_conn_size)
+        resize!(q.cache.mels, max_conn_size)
+        resize!(q.cache.cols_cache, max_nnz)
+
+        connected_states_cache = Array{KT}(undef, length(q.hilbert), max_conn_size)
+        merge!(q.cache.connected_states_cache, Dict(:connected_states => connected_states_cache))
+    end
+
+    fill!(q.cache.connected_states_idxs, 0)
+
+    return q
 end
 
 # THIS IS VERY SLOW!!!

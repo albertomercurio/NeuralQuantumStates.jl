@@ -33,16 +33,16 @@ test_type_inference(hi) = (sigmaz(hi, 1) + sigmax(hi, 1) + sigmay(hi, 2) + 1.2) 
         res = -op1
         @test res.dict[[1, 2]] == -op1.dict[[1, 2]]
 
-        res = op1 - op1
-        @test length(res.dict) == 1
-        @test iszero(sum(res.dict[[1, 2]]))
-        @test iszero(res.constant[])
-
         res = op1 + op2
 
         @test length(res.dict) == 2
         @test res.dict[[1, 2]] == kron(mat_x, mat_x)
         @test res.dict[[2, 3]] == kron(mat_z, mat_z)
+
+        res = op1 - op1
+        @test length(res.dict) == 1
+        @test iszero(sum(res.dict[[1, 2]]))
+        @test iszero(res.constant[])
 
         res = 2.0 * (op1 + 1.2)
         @test res.dict[[1, 2]] == 2.0 * op1.dict[[1, 2]]

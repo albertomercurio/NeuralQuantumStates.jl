@@ -4,8 +4,6 @@ _check_hilbert(q1::QuantumOperator, q2::QuantumOperator) =
         throw(ErrorException("Hilbert spaces are different"))
     end
 
-_promote_quantum_operator(q::QuantumOperator, α::T) where {T<:Number} = _promote_quantum_operator(q, T)
-
 _get_dense_similar(A::AbstractArray, args...) = similar(A, args...)
 _get_dense_similar(A::AbstractSparseMatrix, args...) = similar(nonzeros(A), args...)
 
@@ -28,6 +26,8 @@ function _change_matrix_type(::Type{M}, ::Type{T}) where {M<:AbstractSparseMatri
     S = M.name.wrapper{T,par[2]}
     return S
 end
+
+_promote_quantum_operator(q::QuantumOperator, α::T) where {T<:Number} = _promote_quantum_operator(q, T)
 
 function _promote_quantum_operator(
     q::QuantumOperator{HT,DT,CRT},
@@ -111,4 +111,10 @@ function _multiply_keys_values(
     acting_on1 == acting_on2 || throw(ArgumentError("The acting_on should be the same"))
 
     return Dict(acting_on1 => mat1 * mat2)
+end
+
+function _max_nonzeros_per_row(mat)
+    rows, cols, vals = findnz(mat)
+
+    return mapreduce(i -> count(j -> rows[j] == i && rows[j] != cols[j], eachindex(rows)), max, 1:size(mat, 1))
 end

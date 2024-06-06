@@ -61,56 +61,60 @@ function get_connected_states(
 ) where {HT,T1,T2,DT<:AbstractDict{<:AbstractVector{T1},<:AbstractMatrix{T2}},CT}
     hi = q.hilbert
 
-    connected_states_idxs = T1[]
-    mels = T2[]
+    setup_cache!(q)
+
+    connected_states_idxs = q.cache.connected_states_idxs
+    mels = q.cache.mels
+    ψ_cache = q.cache.ψ_cache
+    cols_cache = q.cache.cols_cache
+    connected_states_cache = q.cache.connected_states_cache[:connected_states]
+
+    n_connected = 0
 
     # Let's add the identity action first
+    # We reserve the first position for the identity action
+    has_diagonal_terms = !iszero(q.constant[])
     c = q.constant[]
-    if !iszero(c)
-        push!(connected_states_idxs, vector_to_kron_index(ψ, hi.dims))
-        push!(mels, c)
-    end
-
-    # TODO: we need to preallocate these arrays somehow
-    # ψ_cache = similar(ψ)
-    # rows_cache = Array{T1}(undef, 4) # The  4 dimension is arbitrary at the moment
-    ψ_cache = q.cache1
-    rows_cache = q.cache2
+    mels[1] = c
+    connected_states_cache[:, 1] .= ψ
+    n_connected += 1
 
     for (acting_on, mat) in q.dict
         # This would be more efficient when using SparseMatrixCOO
         rows, cols, vals = findnz(mat)
         idx = vector_to_kron_index(@view(ψ[acting_on]), @view(hi.dims[acting_on]))
 
-        # rows_cache = similar(rows)
-
-        # idxs = findall(==(idx), rows)
-        idxs = findall!(rows_cache[1:length(rows)] .= rows .== idx)
-        # idxs = findall!(rows_cache .= rows .== idx)
+        idxs = findall!(cols_cache[1:length(cols)] .= cols .== idx)
 
         if length(idxs) > 0
             for i in idxs
-                copyto!(ψ_cache, ψ) # re-initialize the cache
-
-                ψ_acting_on = kron_index_to_vector!(@view(ψ_cache[acting_on]), cols[i] - 1, @view(hi.dims[acting_on]))
-
-                j = vector_to_kron_index(ψ_cache, hi.dims)
-
-                idx_find = findfirst(==(j), connected_states_idxs)
-                if idx_find !== nothing
-                    mels[idx_find] += vals[i]
+                # If it is a diagonal term, we can just add the diagonal value
+                if rows[i] == cols[i]
+                    has_diagonal_terms = true
+                    mels[1] += vals[i]
                 else
-                    push!(connected_states_idxs, j)
-                    push!(mels, vals[i])
+                    copyto!(ψ_cache, ψ) # re-initialize the cache
+
+                    kron_index_to_vector!(@view(ψ_cache[acting_on]), rows[i] - 1, @view(hi.dims[acting_on]))
+
+                    # j = vector_to_kron_index(ψ_cache, hi.dims)
+                    idx_find = findfirst(==(ψ_cache), eachcol(@view(connected_states_cache[:, 2:n_connected])))
+
+                    # idx_find = findfirst(==(j), connected_states_idxs)
+                    if idx_find !== nothing
+                        mels[idx_find] += vals[i]
+                    else
+                        # connected_states_idxs[n_connected + 1] = j
+                        mels[n_connected+1] = vals[i]
+                        connected_states_cache[:, n_connected+1] .= ψ_cache
+                        n_connected += 1
+                    end
                 end
             end
         end
     end
 
-    connected_states = similar(ψ, length(hi), length(connected_states_idxs))
-    for (i, idx) in enumerate(connected_states_idxs)
-        copyto!(@view(connected_states[:, i]), kron_index_to_vector!(ψ_cache, idx - 1, hi.dims))
-    end
+    connected_states = connected_states_cache[:, 2-has_diagonal_terms:n_connected]
 
-    return connected_states, mels
+    return connected_states, mels[2-has_diagonal_terms:n_connected]
 end
