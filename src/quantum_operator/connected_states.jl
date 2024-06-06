@@ -119,7 +119,7 @@ function get_connected_states(
         end
     end
 
-    connected_states = @view(connected_states_cache[:, 2-has_diagonal_terms:n_connected])
+    connected_states = connected_states_cache[:, 2-has_diagonal_terms:n_connected]
 
-    return connected_states, @view(mels[2-has_diagonal_terms:n_connected])
+    return connected_states, mels[2-has_diagonal_terms:n_connected]
 end
