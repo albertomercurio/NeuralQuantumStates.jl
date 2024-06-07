@@ -21,7 +21,6 @@ function QuantumOperator(
         issorted(key) || throw(ArgumentError("The acting_on should be sorted"))
     end
 
-    KT = eltype(first(keys(dict)))
     MT = eltype(first(values(dict)))
     T = promote_type(MT, CT)
 
@@ -32,29 +31,9 @@ function QuantumOperator(
         max_nnz = Ref(0),
         max_conn_size = Ref(0),
         ψ_cache = ψ_cache,
-        connected_states_idxs = KT[],
         mels = T[],
-        cols_cache = KT[],
         connected_states_cache = Dict(:connected_states => initial_matrix_cache), # TODO: is there a more efficient way to handle this?
     )
-
-    # max_nnz = mapreduce(nnz, max, values(dict))
-    # max_conn_size = mapreduce(_max_nonzeros_per_row, +, values(dict)) + !iszero(constant) + 1
-
-    # connected_states_idxs = Array{KT}(undef, max_conn_size)
-    # mels = Array{T}(undef, max_conn_size)
-    # cols_cache = Array{KT}(undef, max_nnz)
-    # connected_states_cache = Array{KT}(undef, length(hilbert), max_conn_size)
-
-    # cache = (
-    #     max_nnz = max_nnz,
-    #     max_conn_size = max_conn_size,
-    #     ψ_cache = ψ_cache,
-    #     connected_states_idxs = connected_states_idxs,
-    #     mels = mels,
-    #     cols_cache = cols_cache,
-    #     connected_states_cache = connected_states_cache,
-    # )
 
     return QuantumOperator(hilbert, dict, Ref(constant), cache)
 end
@@ -170,15 +149,11 @@ function setup_cache!(q::QuantumOperator{HT,DT}) where {HT,KT,DT<:AbstractDict{<
         q.cache.is_initialized[] = true
         q.cache.max_nnz[] = max_nnz
         q.cache.max_conn_size[] = max_conn_size
-        resize!(q.cache.connected_states_idxs, max_conn_size)
         resize!(q.cache.mels, max_conn_size)
-        resize!(q.cache.cols_cache, max_nnz)
 
         connected_states_cache = Array{KT}(undef, length(q.hilbert), max_conn_size)
         merge!(q.cache.connected_states_cache, Dict(:connected_states => connected_states_cache))
     end
-
-    fill!(q.cache.connected_states_idxs, 0)
 
     return q
 end

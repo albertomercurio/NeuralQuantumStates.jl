@@ -3,6 +3,8 @@ module NeuralQuantumStates
 using LinearAlgebra
 using SparseArrays
 
+using SparseArrays: AbstractSparseMatrixCSC, getcolptr
+
 const default_eltype = ComplexF64
 
 include("hilbert.jl")

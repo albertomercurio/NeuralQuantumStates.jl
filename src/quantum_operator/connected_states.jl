@@ -63,10 +63,8 @@ function get_connected_states(
 
     setup_cache!(q)
 
-    connected_states_idxs = q.cache.connected_states_idxs
     mels = q.cache.mels
     ψ_cache = q.cache.ψ_cache
-    cols_cache = q.cache.cols_cache
     connected_states_cache = q.cache.connected_states_cache[:connected_states]
 
     n_connected = 0
@@ -81,15 +79,16 @@ function get_connected_states(
 
     for (acting_on, mat) in q.dict
         # This would be more efficient when using SparseMatrixCOO
-        rows, cols, vals = findnz(mat)
         idx = vector_to_kron_index(@view(ψ[acting_on]), @view(hi.dims[acting_on]))
 
-        idxs = findall!(cols_cache[1:length(cols)] .= cols .== idx)
+        rows = rowvals(mat)
+        vals = nonzeros(mat)
+        idxs = nzrange(mat, floor(T1, idx))
 
         if length(idxs) > 0
             for i in idxs
                 # If it is a diagonal term, we can just add the diagonal value
-                if rows[i] == cols[i]
+                if rows[i] == i
                     has_diagonal_terms = true
                     mels[1] += vals[i]
                 else
@@ -97,20 +96,6 @@ function get_connected_states(
 
                     kron_index_to_vector!(@view(ψ_cache[acting_on]), rows[i] - 1, @view(hi.dims[acting_on]))
 
-                    # TODO: This commented code is slow. Check if idx_find might be === nothing
-                    # idx_find = findfirst(==(ψ_cache), eachcol(@view(connected_states_cache[:, 2:n_connected])))
-
-                    # if idx_find !== nothing
-                    #     println("Found")
-                    #     mels[idx_find] += vals[i]
-                    # else
-                    #     # connected_states_idxs[n_connected + 1] = j
-                    #     mels[n_connected+1] = vals[i]
-                    #     connected_states_cache[:, n_connected+1] .= ψ_cache
-                    #     n_connected += 1
-                    # end
-                    
-                    # We use this instead, without checking if the state is already in the cache
                     mels[n_connected+1] = vals[i]
                     connected_states_cache[:, n_connected+1] .= ψ_cache
                     n_connected += 1
