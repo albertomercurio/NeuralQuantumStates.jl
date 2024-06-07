@@ -1,4 +1,4 @@
-export vector_to_kron_index, kron_index_to_vector, kron_index_to_vector!
+export vector_to_kron_index, kron_index_to_vector!
 export get_connected_states
 
 # This is to avoid to call prod(@view(M[i+1:end])) when M is already a SubArray
@@ -12,10 +12,6 @@ end
 
 function vector_to_kron_index(x::AbstractVector{T1}, M::AbstractVector{T2}) where {T1,T2}
     T = promote_type(T1, T2)
-
-    # For some reason this allocates memory when M is already a SubArray
-    # so we need to use the _prod function
-    # q = reduce((acc, i) -> acc + x[i] * prod(@view(M[i+1:end])), eachindex(x), init=1)
 
     q = reduce((acc, (i, xi)) -> acc + xi * _prod(i, M), enumerate(x), init = one(T))
 
@@ -31,28 +27,6 @@ function kron_index_to_vector!(x::AbstractVector, q, M::AbstractVector)
     end
 
     return x
-end
-
-function kron_index_to_vector(q::T1, M::AbstractVector{T2}) where {T1<:Integer,T2<:Integer}
-    T = promote_type(T1, T2)
-    n = length(M)
-    x = Vector{T}(undef, n)
-
-    return kron_index_to_vector!(x, q, M)
-end
-
-# Inplace version of findall
-function findall!(A::AbstractArray)
-    n = count(!iszero, A)
-    I = @view(A[1:n])
-    cnt = 1
-    @inbounds for (i, a) in enumerate(A)
-        if !iszero(a)
-            I[cnt] = i
-            cnt += 1
-        end
-    end
-    return I
 end
 
 function get_connected_states(

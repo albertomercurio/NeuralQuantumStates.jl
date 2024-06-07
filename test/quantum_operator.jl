@@ -10,6 +10,11 @@ test_type_inference(hi) = (sigmaz(hi, 1) + sigmax(hi, 1) + sigmay(hi, 2) + 1.2) 
     mat_y = [0 1im; -1im 0]
     mat_z = [-1 0; 0 1]
 
+    op = QuantumOperator(hi, 1, mat_x)
+    res = 1.2 * (op + 1.2)
+    @test res.dict[[1]] == 1.2 * mat_x
+    @test res.constant[] == 1.2 * 1.2
+
     for type in [Int32, Int64, Float32, Float64, ComplexF32, ComplexF64]
         op1 = sigmax(hi, 1, type) * sigmax(hi, 2, type)
         op2 = sigmaz(hi, 2, type) * sigmaz(hi, 3, type)
