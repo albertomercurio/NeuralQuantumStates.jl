@@ -68,7 +68,7 @@ function Base.:(-)(q1::QuantumOperator, q2::QuantumOperator)
 end
 
 function LinearAlgebra.lmul!(α::Number, q::QuantumOperator{HT,DT,CRT}) where {HT,DT,CT<:Number,CRT<:Ref{CT}}
-    # iszero(α) && (empty!(q.dict); q.constant[] = zero(CT); return q)
+    iszero(α) && (empty!(q.dict); q.constant[] = zero(CT); return q)
 
     for (key, value) in q.dict
         rmul!(value, α)
