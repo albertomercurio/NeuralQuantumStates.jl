@@ -24,10 +24,6 @@ function QuantumOperator(
     MTT = eltype(MT)
     T = promote_type(MTT, CT)
 
-    if length(dict) == 0
-        return QuantumOperator(hilbert, dict, Ref(constant), NamedTuple())
-    end
-
     ψ_cache = _get_dense_similar(first(values(dict)), length(hilbert.dims))
     initial_matrix_cache = _get_dense_similar(first(values(dict)), 1, 1)
     cache = (
