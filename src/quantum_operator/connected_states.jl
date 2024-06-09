@@ -35,11 +35,11 @@ function get_connected_states(
 ) where {HT,T1,T2,DT<:AbstractDict{<:AbstractVector{T1},<:AbstractMatrix{T2}},CT}
     hi = q.hilbert
 
-    setup_cache!(q)
+    q2 = setup_cache(q)
 
-    mels = q.cache.mels
-    ψ_cache = q.cache.ψ_cache
-    connected_states_cache = q.cache.connected_states_cache[:connected_states]
+    mels = q2.cache.mels
+    ψ_cache = q2.cache.ψ_cache
+    connected_states_cache = q2.cache.connected_states_cache
 
     n_connected = 0
 
