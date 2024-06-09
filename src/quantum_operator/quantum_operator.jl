@@ -12,7 +12,7 @@ function QuantumOperator(
     hilbert::HT,
     dict::DT,
     constant::CT = 0,
-) where {HT<:Hilbert,DT<:AbstractDict{<:AbstractVector,<:AbstractMatrix},CT<:Number}
+) where {HT<:Hilbert,MT<:AbstractMatrix,DT<:AbstractDict{<:AbstractVector,MT},CT<:Number}
     for key in keys(dict)
         # TODO: merge also the duplicates on the product
         allunique(key) ||
@@ -21,8 +21,8 @@ function QuantumOperator(
         issorted(key) || throw(ArgumentError("The acting_on should be sorted"))
     end
 
-    MT = eltype(first(values(dict)))
-    T = promote_type(MT, CT)
+    MTT = eltype(MT)
+    T = promote_type(MTT, CT)
 
     ψ_cache = _get_dense_similar(first(values(dict)), length(hilbert.dims))
     initial_matrix_cache = _get_dense_similar(first(values(dict)), 1, 1)
@@ -68,7 +68,7 @@ function Base.:(-)(q1::QuantumOperator, q2::QuantumOperator)
 end
 
 function LinearAlgebra.lmul!(α::Number, q::QuantumOperator{HT,DT,CRT}) where {HT,DT,CT<:Number,CRT<:Ref{CT}}
-    iszero(α) && (empty!(q.dict); q.constant[] = zero(CT); return q)
+    # iszero(α) && (empty!(q.dict); q.constant[] = zero(CT); return q)
 
     for (key, value) in q.dict
         rmul!(value, α)
