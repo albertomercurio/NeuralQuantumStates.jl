@@ -121,11 +121,11 @@ function Base.:(*)(
     return QuantumOperator(q1.hilbert, q_out_dict, q_out_c)
 end
 
-function setup_cache(q::QuantumOperator{HT,DT,CT,true}) where {HT,DT,CT}
-    return q
-end
+setup_cache(q::QuantumOperator{HT,DT,CT,true}) where {HT,DT,CT} = q
 
-function setup_cache(q::QuantumOperator{HT,DT,CRT,false}) where {HT,KT,MT<:AbstractMatrix,DT<:AbstractDict{<:AbstractVector{KT},MT},CT<:Number,CRT<:Ref{CT}}
+function setup_cache(
+    q::QuantumOperator{HT,DT,CRT,false},
+) where {HT,KT,MT<:AbstractMatrix,DT<:AbstractDict{<:AbstractVector{KT},MT},CT<:Number,CRT<:Ref{CT}}
     dict = q.dict
 
     MTT = eltype(MT)
