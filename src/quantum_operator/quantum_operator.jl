@@ -24,6 +24,10 @@ function QuantumOperator(
     MTT = eltype(MT)
     T = promote_type(MTT, CT)
 
+    if length(dict) == 0
+        return QuantumOperator(hilbert, dict, Ref(constant), NamedTuple())
+    end
+
     ψ_cache = _get_dense_similar(first(values(dict)), length(hilbert.dims))
     initial_matrix_cache = _get_dense_similar(first(values(dict)), 1, 1)
     cache = (
@@ -68,11 +72,7 @@ function Base.:(-)(q1::QuantumOperator, q2::QuantumOperator)
 end
 
 function LinearAlgebra.lmul!(α::Number, q::QuantumOperator{HT,DT,CRT}) where {HT,DT,CT<:Number,CRT<:Ref{CT}}
-    iszero(α) && (empty!(q.dict); q.constant[] = zero(CT); return q)
-
-    for (key, value) in q.dict
-        rmul!(value, α)
-    end
+    _lmul_dict!(α, q.dict)
 
     q.constant[] *= α
 
@@ -116,23 +116,24 @@ function Base.:(*)(
     # = αβ + α ∑ᵢBᵢ + β ∑ᵢAᵢ + ∑ᵢⱼAᵢBⱼ
     # = β(α + ∑ᵢAᵢ) + α ∑ᵢBᵢ + ∑ᵢⱼAᵢBⱼ
 
-    q_out = _promote_quantum_operator(q1, T)
+    q_out_dict = _convert_dict(q1.dict, T)
 
     # αβ + β ∑ᵢAᵢ
-    rmul!(q_out, q2.constant[])
+    q_out_c = q1.constant[] * q2.constant[]
+    _lmul_dict!(q2.constant[], q_out_dict)
 
     # α ∑ᵢBᵢ
-    mergewith!(+, q_out.dict, (q1.constant[] * q2).dict)
+    mergewith!(+, q_out_dict, (q1.constant[] * q2).dict)
 
     # ∑ᵢⱼAᵢBⱼ
     for (key1, value1) in q1.dict
         for (key2, value2) in q2.dict
             dict_tmp = _multiply_keys_values(q1.hilbert, key1, value1, key2, value2)
-            mergewith!(+, q_out.dict, dict_tmp)
+            mergewith!(+, q_out_dict, dict_tmp)
         end
     end
 
-    return QuantumOperator(q1.hilbert, q_out.dict, q1.constant[] * q2.constant[])
+    return QuantumOperator(q1.hilbert, q_out_dict, q_out_c)
 end
 
 is_initialized(q::QuantumOperator) = q.cache.is_initialized[]

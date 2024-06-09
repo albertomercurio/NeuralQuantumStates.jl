@@ -7,6 +7,16 @@ _check_hilbert(q1::QuantumOperator, q2::QuantumOperator) =
 _get_dense_similar(A::AbstractArray, args...) = similar(A, args...)
 _get_dense_similar(A::AbstractSparseMatrix, args...) = similar(nonzeros(A), args...)
 
+function _lmul_dict!(α::Number, dict::DT) where {KT,MT<:AbstractMatrix,DT<:Dict{KT,MT}}
+    iszero(α) && (empty!(dict); return dict)
+
+    for mat in values(dict)
+        rmul!(mat, α)
+    end
+
+    return dict
+end
+
 function _change_matrix_type(::Type{M}, ::Type{T}) where {M<:AbstractMatrix,T}
     par = M.parameters
     npar = length(par)
@@ -27,6 +37,11 @@ function _change_matrix_type(::Type{M}, ::Type{T}) where {M<:AbstractSparseMatri
     return S
 end
 
+function _convert_dict(dict::DT, ::Type{T}) where {KT,MT<:AbstractMatrix,DT<:Dict{KT,MT},T}
+    MT_new = _change_matrix_type(MT, T)
+    return Dict{KT,MT_new}(key => copy(convert(MT_new, value)) for (key, value) in dict)
+end
+
 _promote_quantum_operator(q::QuantumOperator, α::T) where {T<:Number} = _promote_quantum_operator(q, T)
 
 function _promote_quantum_operator(
@@ -35,9 +50,9 @@ function _promote_quantum_operator(
 ) where {HT<:Hilbert,T2<:Number,KT,MT<:AbstractMatrix,DT<:Dict{KT,MT},CT<:T2,CRT<:Ref{CT}}
     T3 = eltype(MT)
     T = promote_type(T1, T2, T3)
-    MT_new = _change_matrix_type(MT, T)
 
-    dict = Dict{KT,MT_new}(key => copy(convert(MT_new, value)) for (key, value) in q.dict)
+    dict = _convert_dict(q.dict, T)
+
     constant = T(q.constant[])
 
     return QuantumOperator(q.hilbert, dict, constant)
