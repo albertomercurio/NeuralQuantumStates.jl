@@ -131,5 +131,11 @@ end
 function _max_nonzeros_per_row(mat)
     rows, cols, vals = findnz(mat)
 
-    return mapreduce(i -> count(j -> rows[j] == i && rows[j] != cols[j], eachindex(rows)), max, 1:size(mat, 1))
+    # The line below is not supported on GPU arrays
+    # return mapreduce(i -> count(j -> rows[j] == i && rows[j] != cols[j], eachindex(rows)), max, 1:size(mat, 1))
+
+    # The line below is supported on GPU arrays
+    # It allocates some memoty though
+    # TODO: We can define a predefined cache to store the Bool values
+    return mapreduce(i -> count(rows .== i .&& rows .!= cols), max, 1:size(mat, 1))
 end

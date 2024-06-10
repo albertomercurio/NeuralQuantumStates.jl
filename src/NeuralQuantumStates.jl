@@ -5,6 +5,8 @@ using SparseArrays
 
 using SparseArrays: AbstractSparseMatrixCSC, getcolptr
 
+import ArrayInterface: allowed_getindex, allowed_setindex!
+
 const default_eltype = ComplexF64
 
 include("hilbert.jl")

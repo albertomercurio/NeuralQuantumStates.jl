@@ -142,7 +142,8 @@ function setup_cache(
 
     for (i, acting_on) in enumerate(keys(dict))
         acting_on_size = length(acting_on)
-        prod_dims_cache[i, 1] = 1
+        # prod_dims_cache[i, 1] = 1 # This doesn't work with GPU arrays
+        allowed_setindex!(prod_dims_cache, 1, i, 1) # This supports GPU arrays
         cumprod!(@view(prod_dims_cache[i, 2:acting_on_size]), @view(q.hilbert.dims[acting_on[2:end]]))
         reverse!(@view(prod_dims_cache[i, 1:acting_on_size]))
     end

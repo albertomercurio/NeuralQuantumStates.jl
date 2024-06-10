@@ -4,10 +4,12 @@ authors = ["Alberto Mercurio"]
 version = "0.1.0"
 
 [deps]
+ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
+ArrayInterface = "7"
 LinearAlgebra = "<0.0.1, 1"
 Pkg = "<0.0.1, 1"
 SparseArrays = "<0.0.1, 1"
