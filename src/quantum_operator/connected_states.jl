@@ -1,19 +1,8 @@
 export vector_to_kron_index, kron_index_to_vector!
 export get_connected_states
 
-# This is to avoid to call prod(@view(M[i+1:end])) when M is already a SubArray
-function _prod(i, M::AbstractVector{T}) where {T}
-    res = one(T)
-    @inbounds for j in i+1:length(M)
-        res *= M[j]
-    end
-    return res
-end
-
-function vector_to_kron_index(x::AbstractVector{T1}, M::AbstractVector{T2}) where {T1,T2}
-    T = promote_type(T1, T2)
-
-    q = reduce((acc, (i, xi)) -> acc + xi * _prod(i, M), enumerate(x), init = one(T))
+function vector_to_kron_index(x::AbstractVector{T1}, prod_dims::AbstractVector{T2}) where {T1,T2}
+    q = dot(x, prod_dims) + 1
 
     return q
 end
@@ -38,8 +27,8 @@ function get_connected_states(
     q2 = setup_cache(q)
 
     mels = q2.cache.mels
-    ψ_cache = q2.cache.ψ_cache
     connected_states_cache = q2.cache.connected_states_cache
+    prod_dims_cache = q2.cache.prod_dims_cache
 
     n_connected = 0
 
@@ -51,27 +40,26 @@ function get_connected_states(
     connected_states_cache[:, 1] .= ψ
     n_connected += 1
 
-    for (acting_on, mat) in q.dict
-        # This would be more efficient when using SparseMatrixCOO
-        idx = vector_to_kron_index(@view(ψ[acting_on]), @view(hi.dims[acting_on]))
+    for (i, (acting_on, mat)) in enumerate(q.dict)
+        idx = vector_to_kron_index(@view(ψ[acting_on]), @view(prod_dims_cache[i, 1:length(acting_on)]))
 
         rows = rowvals(mat)
         vals = nonzeros(mat)
         idxs = nzrange(mat, floor(T1, idx))
 
         if length(idxs) > 0
-            for i in idxs
+            for j in idxs
                 # If it is a diagonal term, we can just add the diagonal value
-                if rows[i] == i
+                if rows[j] == j
                     has_diagonal_terms = true
-                    mels[1] += vals[i]
+                    mels[1] += vals[j]
                 else
-                    copyto!(ψ_cache, ψ) # re-initialize the cache
+                    ψ_tmp = @view(connected_states_cache[:, n_connected+1])
+                    copyto!(ψ_tmp, ψ)
 
-                    kron_index_to_vector!(@view(ψ_cache[acting_on]), rows[i] - 1, @view(hi.dims[acting_on]))
+                    kron_index_to_vector!(@view(ψ_tmp[acting_on]), rows[j] - 1, @view(hi.dims[acting_on]))
 
-                    mels[n_connected+1] = vals[i]
-                    connected_states_cache[:, n_connected+1] .= ψ_cache
+                    mels[n_connected+1] = vals[j]
                     n_connected += 1
                 end
             end

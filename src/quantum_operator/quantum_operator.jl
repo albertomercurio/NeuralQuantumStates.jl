@@ -134,17 +134,25 @@ function setup_cache(
 
     max_nnz = mapreduce(nnz, max, values(dict))
     max_conn_size = mapreduce(_max_nonzeros_per_row, +, values(dict)) + !iszero(q.constant[]) + 1
+    max_acting_on_size = mapreduce(length, max, keys(dict))
 
-    ψ_cache = _get_dense_similar(mat1, length(q.hilbert))
     mels = _get_dense_similar(mat1, T, max_conn_size)
     connected_states_cache = _get_dense_similar(mat1, length(q.hilbert), max_conn_size)
+    prod_dims_cache = _get_dense_similar(mat1, KT, length(dict), max_acting_on_size)
+
+    for (i, acting_on) in enumerate(keys(dict))
+        acting_on_size = length(acting_on)
+        prod_dims_cache[i, 1] = 1
+        cumprod!(@view(prod_dims_cache[i, 2:acting_on_size]), @view(q.hilbert.dims[acting_on[2:end]]))
+        reverse!(@view(prod_dims_cache[i, 1:acting_on_size]))
+    end
 
     cache = (
         max_nnz = max_nnz,
         max_conn_size = max_conn_size,
-        ψ_cache = ψ_cache,
         mels = mels,
         connected_states_cache = connected_states_cache,
+        prod_dims_cache = prod_dims_cache,
     )
 
     is_initialized = Val(true)
